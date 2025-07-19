@@ -17,7 +17,7 @@ app.use((req, res, next) => {
 });
 
 // Health Check
-pp.get('/', async (req, res) => {
+app.get('/', async (req, res) => {
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
