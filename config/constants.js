@@ -25,5 +25,8 @@ ZOHO: {
     CLIENT_ID: process.env.ZOHO_CLIENT_ID,
     CLIENT_SECRET: process.env.ZOHO_CLIENT_SECRET,
     REFRESH_TOKEN: process.env.ZOHO_REFRESH_TOKEN
-  }
+  },
+  OGGO_API_BASE_URL: process.env.OGGO_API_BASE_URL || 'https://oggo-data.net/api',
+  OGGO_CONSUMER_KEY: process.env.OGGO_CONSUMER_KEY,
+  OGGO_CONSUMER_SECRET: process.env.OGGO_CONSUMER_SECRET,
 };
