@@ -19,5 +19,11 @@ module.exports = {
   },
   DEFAULT_INSURANCE_TYPE: 'AUTO',
   OGGO_API_BASE_URL: 'https://oggo-data.net/api/',
-  ZOHO_CRM_API_URL: 'https://www.zohoapis.com/crm/v2'
+  ZOHO_CRM_API_URL: 'https://www.zohoapis.com/crm/v2',
+ZOHO: {
+    AUTH_URL: 'https://accounts.zoho.com/oauth/v2/token',
+    CLIENT_ID: process.env.ZOHO_CLIENT_ID,
+    CLIENT_SECRET: process.env.ZOHO_CLIENT_SECRET,
+    REFRESH_TOKEN: process.env.ZOHO_REFRESH_TOKEN
+  }
 };

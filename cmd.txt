@@ -1,0 +1,3 @@
+C:\Users\user>curl -X POST "https://accounts.zoho.com/oauth/v2/token" -d "code=1000.10d4bb625a05d12764c6c9c50c8e5952.6e9d75c0fd8a7d4057ae4b034caf417c" -d "client_id=1000.SW8P96OIZTVY41H00JEZC9JAU440KF" -d "client_secret=cf5e85154d5512096c126cb5708910ba919c1ae299" -d "grant_type=authorization_code" -d "redirect_uri=http://localhost"
+{"access_token":"1000.2507af411e50555abf76b097b02bf3b5.02711121145842d338d0febf49478cf5","refresh_token":"1000.268fb73a7114da239dc6a7e6e890504b.251e2c306d139518d83cf1c94732d9e5","scope":"ZohoCRM.modules.ALL ZohoCRM.settings.ALL ZohoCRM.users.READ aaaserver.profile.READ","api_domain":"https://www.zohoapis.com","token_type":"Bearer","expires_in":3600}
+C:\Users\user>

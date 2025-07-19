@@ -3,89 +3,99 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const logger = require('./utils/logger');
 const aircallWebhook = require('./lib/aircall-webhook');
+const zohoApi = require('./lib/zoho-api');
+const oggoApi = require('./lib/oggo-api');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(bodyParser.json());
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.path}`);
+  next();
+});
 
-// Health Check Endpoint
-app.get('/', (req, res) => {
-  res.status(200).json({
+// Health Check with Dependency Verification
+app.get('/', async (req, res) => {
+  const status = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    endpoints: {
-      aircallWebhook: '/webhook/aircall',
-      testZoho: '/test/zoho',
-      testOggo: '/test/oggo'
+    dependencies: {
+      zoho: 'pending',
+      oggo: 'pending'
     }
-  });
+  };
+
+  try {
+    await zohoApi.searchContact('+33123456789');
+    status.dependencies.zoho = 'healthy';
+  } catch (error) {
+    status.dependencies.zoho = 'unhealthy';
+  }
+
+  try {
+    await oggoApi.ping();
+    status.dependencies.oggo = 'healthy';
+  } catch (error) {
+    status.dependencies.oggo = 'unhealthy';
+  }
+
+  res.status(200).json(status);
 });
 
-// Aircall Webhook Endpoint
+// Webhook Endpoints
 app.post('/webhook/aircall', async (req, res) => {
   try {
-    logger.info('Received Aircall webhook', { event: req.body.event });
-
-    // Process the webhook asynchronously
-    aircallWebhook.handleCallEvent(req.body)
-      .then(() => logger.info('Webhook processed successfully'))
-      .catch(error => logger.error('Async webhook processing error', error));
-
-    res.status(200).send('OK');
+    logger.info('Aircall webhook received', { event: req.body.event });
+    
+    // Immediate response, process async
+    res.status(202).send('Processing');
+    
+    await aircallWebhook.handleCallEvent(req.body);
   } catch (error) {
-    logger.error('Webhook handler error', { error });
-    res.status(500).json({
+    logger.error('Webhook processing failed', { 
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: error.stack,
+      body: req.body 
     });
   }
 });
 
-// Test OGGO endpoint
-app.get('/test/oggo', async (req, res) => {
-  try {
-    const testPhone = '+33756282724'; // Your test number
-    const existing = await aircallWebhook.oggoApi.searchContact(testPhone);
-    
-    if (existing) {
-      return res.json({ 
-        status: 'success', 
-        action: 'found_existing',
-        contact: existing 
-      });
-    }
-    
-    const newContact = await aircallWebhook.oggoApi.createContact({
-      firstName: 'Test',
-      lastName: 'User',
-      phone: testPhone,
-      email: 'test@example.com'
-    });
-    
-    res.json({ 
-      status: 'success', 
-      action: 'created_new',
-      contact: newContact 
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      error: error.message
-    });
-  }
-});
-
-// Test Zoho endpoint
+// Test Endpoints
 app.get('/test/zoho', async (req, res) => {
   try {
-    const result = await aircallWebhook.zohoApi.createTestLead();
+    const result = await zohoApi.createTestLead();
     res.json({ 
       success: true,
-      leadId: result.id 
+      leadId: result.data[0].details.id,
+      message: 'Test lead created successfully'
     });
   } catch (error) {
+    logger.error('Zoho test failed', error);
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+app.get('/test/oggo', async (req, res) => {
+  try {
+    const testPhone = '+33756282724';
+    const contact = await oggoApi.findOrCreateContact({
+      phone: testPhone,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User'
+    });
+    
+    res.json({
+      success: true,
+      contact
+    });
+  } catch (error) {
+    logger.error('OGGO test failed', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -93,18 +103,20 @@ app.get('/test/zoho', async (req, res) => {
   }
 });
 
-// Start Server
-app.listen(PORT, () => {
+// Graceful Shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received. Shutting down gracefully');
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+});
+
+const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
-  logger.info(`Aircall webhook URL: ${process.env.BASE_URL || `http://localhost:${PORT}`}/webhook/aircall`);
-});
-
-// Error handling
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.info(`Webhook URL: ${process.env.SERVER_URL}/webhook/aircall`);
+  
+  // Warm up connections
+  zohoApi.createTestLead().catch(() => {});
+  oggoApi.ping().catch(() => {});
 });
