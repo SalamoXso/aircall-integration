@@ -5,6 +5,7 @@ const logger = require('./utils/logger');
 const aircallWebhook = require('./lib/aircall-webhook');
 const zohoApi = require('./lib/zoho-api');
 const oggoApi = require('./lib/oggo-api');
+const oggo = require('./lib/oggo-api');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,7 +16,9 @@ app.use((req, res, next) => {
   logger.info(`Incoming ${req.method} ${req.path}`);
   next();
 });
-
+oggo.createProject('health', sampleData)
+  .then(console.log)
+  .catch(console.error);
 // Health Check
 app.get('/', async (req, res) => {
   const health = {
