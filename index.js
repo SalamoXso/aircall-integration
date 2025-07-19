@@ -1,4 +1,7 @@
+
 require('dotenv').config();
+const zohoApi = require('./lib/zoho-api');
+const oggoApi = require('./lib/oggo-api');
 const express = require('express');
 const bodyParser = require('body-parser');
 const logger = require('./utils/logger');
@@ -39,6 +42,7 @@ app.post('/webhook/aircall', async (req, res) => {
   }
 });
 
+// Test Zoho endpoint
 app.get('/test-zoho', async (req, res) => {
   try {
     const result = await zohoApi.createTestLead();
@@ -49,17 +53,17 @@ app.get('/test-zoho', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: error.message
     });
   }
 });
+
+// Test OGGO endpoint
 app.get('/test-oggo', async (req, res) => {
   try {
     const phone = '+33123456789';
-    
-    // 1. Try to find existing contact
     const existing = await oggoApi.searchContactByPhone(phone);
+    
     if (existing.length > 0) {
       return res.json({ 
         status: 'success', 
@@ -68,7 +72,6 @@ app.get('/test-oggo', async (req, res) => {
       });
     }
     
-    // 2. Create new contact if not found
     const newContact = await oggoApi.createContact({
       firstname: 'Test',
       lastname: 'User',
@@ -83,8 +86,7 @@ app.get('/test-oggo', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       status: 'error',
-      error: error.message,
-      details: error.response?.data || 'No response details'
+      error: error.message
     });
   }
 });
