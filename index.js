@@ -82,24 +82,7 @@ app.get('/test/zoho', async (req, res) => {
   }
 });
 
-app.get('/test/oggo', async (req, res) => {
-  try {
-    const contact = await oggoApi.findOrCreateContact({
-      phone: '+33123456789',
-      firstName: 'Test',
-      lastName: 'User'
-    });
-    res.json({
-      success: true,
-      contact
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+
 
 // Error Handling
 app.use((err, req, res, next) => {
