@@ -17,33 +17,37 @@ app.use((req, res, next) => {
 });
 
 // Health Check
-app.get('/', async (req, res) => {
+pp.get('/', async (req, res) => {
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     services: {
-      zoho: 'unknown',
-      oggo: 'unknown',
+      zoho: await checkZohoHealth(),
+      oggo: await checkOggoHealth(),
       webhook: 'active'
     }
   };
 
-  try {
-    await zohoApi.searchContact('+33123456789');
-    health.services.zoho = 'healthy';
-  } catch (error) {
-    health.services.zoho = 'unhealthy';
-  }
-
-  try {
-    await oggoApi.ping();
-    health.services.oggo = 'healthy';
-  } catch (error) {
-    health.services.oggo = 'unhealthy';
-  }
-
   res.status(200).json(health);
 });
+
+async function checkZohoHealth() {
+  try {
+    await zohoApi.createTestLead();
+    return 'healthy';
+  } catch (error) {
+    return 'unhealthy';
+  }
+}
+
+async function checkOggoHealth() {
+  try {
+    await oggoApi.ping();
+    return 'healthy';
+  } catch (error) {
+    return 'unhealthy';
+  }
+}
 
 // Webhook Endpoint
 app.post('/webhook/aircall', async (req, res) => {
