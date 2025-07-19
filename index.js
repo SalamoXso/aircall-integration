@@ -90,13 +90,18 @@ app.use((err, req, res, next) => {
 });
 
 // Server Start
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   logger.info(`Server running on port ${PORT}`);
   logger.info(`Aircall Webhook URL: ${process.env.SERVER_URL}/webhook/aircall`);
   
-  // Warm up connections
-  zohoApi.createTestLead().catch(() => {});
-  oggoApi.ping().catch(() => {});
+  try {
+    // Warm up connections
+    await zohoApi.createTestLead();
+    await oggoApi.ping(); // Now this will work
+    logger.info('All services warmed up successfully');
+  } catch (error) {
+    logger.warn('Service warmup failed', { error: error.message });
+  }
 });
 
 // Graceful Shutdown
