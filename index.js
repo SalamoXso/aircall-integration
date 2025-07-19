@@ -12,52 +12,52 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(bodyParser.json());
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`);
+  logger.info(`Incoming ${req.method} ${req.path}`);
   next();
 });
 
-// Health Check with Dependency Verification
+// Health Check
 app.get('/', async (req, res) => {
-  const status = {
+  const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    dependencies: {
-      zoho: 'pending',
-      oggo: 'pending'
+    services: {
+      zoho: 'unknown',
+      oggo: 'unknown',
+      webhook: 'active'
     }
   };
 
   try {
     await zohoApi.searchContact('+33123456789');
-    status.dependencies.zoho = 'healthy';
+    health.services.zoho = 'healthy';
   } catch (error) {
-    status.dependencies.zoho = 'unhealthy';
+    health.services.zoho = 'unhealthy';
   }
 
   try {
     await oggoApi.ping();
-    status.dependencies.oggo = 'healthy';
+    health.services.oggo = 'healthy';
   } catch (error) {
-    status.dependencies.oggo = 'unhealthy';
+    health.services.oggo = 'unhealthy';
   }
 
-  res.status(200).json(status);
+  res.status(200).json(health);
 });
 
-// Webhook Endpoints
+// Webhook Endpoint
 app.post('/webhook/aircall', async (req, res) => {
   try {
-    logger.info('Aircall webhook received', { event: req.body.event });
-    
-    // Immediate response, process async
-    res.status(202).send('Processing');
-    
+    // Immediate response
+    res.status(202).json({ status: 'processing' });
+
+    // Process async
     await aircallWebhook.handleCallEvent(req.body);
   } catch (error) {
-    logger.error('Webhook processing failed', { 
+    logger.error('Webhook processing error', {
       error: error.message,
       stack: error.stack,
-      body: req.body 
+      body: req.body
     });
   }
 });
@@ -65,37 +65,13 @@ app.post('/webhook/aircall', async (req, res) => {
 // Test Endpoints
 app.get('/test/zoho', async (req, res) => {
   try {
-    const result = await zohoApi.createTestLead();
-    res.json({ 
-      success: true,
-      leadId: result.data[0].details.id,
-      message: 'Test lead created successfully'
-    });
-  } catch (error) {
-    logger.error('Zoho test failed', error);
-    res.status(500).json({
-      success: false,
-      error: error.response?.data || error.message
-    });
-  }
-});
-
-app.get('/test/oggo', async (req, res) => {
-  try {
-    const testPhone = '+33756282724';
-    const contact = await oggoApi.findOrCreateContact({
-      phone: testPhone,
-      email: 'test@example.com',
-      firstName: 'Test',
-      lastName: 'User'
-    });
-    
+    const lead = await zohoApi.createTestLead();
     res.json({
       success: true,
-      contact
+      leadId: lead.data[0].details.id,
+      tokenExpires: new Date(zohoApi.tokenCache.expiresAt).toISOString()
     });
   } catch (error) {
-    logger.error('OGGO test failed', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -103,20 +79,50 @@ app.get('/test/oggo', async (req, res) => {
   }
 });
 
-// Graceful Shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received. Shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
+app.get('/test/oggo', async (req, res) => {
+  try {
+    const contact = await oggoApi.findOrCreateContact({
+      phone: '+33123456789',
+      firstName: 'Test',
+      lastName: 'User'
+    });
+    res.json({
+      success: true,
+      contact
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
+// Error Handling
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error', {
+    error: err.message,
+    stack: err.stack,
+    url: req.originalUrl
+  });
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Server Start
 const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
-  logger.info(`Webhook URL: ${process.env.SERVER_URL}/webhook/aircall`);
+  logger.info(`Aircall Webhook URL: ${process.env.SERVER_URL}/webhook/aircall`);
   
   // Warm up connections
   zohoApi.createTestLead().catch(() => {});
   oggoApi.ping().catch(() => {});
+});
+
+// Graceful Shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received - shutting down gracefully');
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
 });
