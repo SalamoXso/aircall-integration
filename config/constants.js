@@ -18,5 +18,6 @@ module.exports = {
     CLIENT: 'CLIENT' 
   },
   DEFAULT_INSURANCE_TYPE: 'AUTO',
-  OGGO_API_BASE_URL: 'https://oggo-data.net/api/'
+  OGGO_API_BASE_URL: 'https://oggo-data.net/api/',
+  ZOHO_CRM_API_URL: 'https://www.zohoapis.com/crm/v2'
 };
