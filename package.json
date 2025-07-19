@@ -9,13 +9,13 @@
     "test": "jest"
   },
   "dependencies": {
+    "@zohocrm/nodejs-sdk": "git+https://github.com/zoho/zohocrm-nodejs-sdk.git",
     "axios": "^1.6.2",
     "crypto-js": "^4.1.1",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "oauth-1.0a": "^2.2.6",
-    "winston": "^3.11.0",
-"@zohocrm/nodejs-sdk": "git+https://github.com/zoho/zohocrm-nodejs-sdk.git"
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
