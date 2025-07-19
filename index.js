@@ -21,24 +21,20 @@ app.get('/', (req, res) => {
 // Aircall Webhook Endpoint
 app.post('/webhook/aircall', async (req, res) => {
   try {
-    console.log('Received webhook:', JSON.stringify(req.body, null, 2)); // Add this
-    
+    // Validate the webhook
     if (!aircallWebhook.validateWebhook(req)) {
-      console.log('Validation failed');
-      return res.status(403).send('Forbidden');
+      logger.warn('Invalid webhook received', { body: req.body });
+      return res.status(400).send('Bad Request');
     }
 
+    // Process the webhook asynchronously
     aircallWebhook.handleCallEvent(req.body)
-      .then(() => console.log('Processing completed'))
-      .catch(error => {
-        console.error('Async error:', error.stack); // Detailed error
-        logger.error('Async webhook processing error', error);
-      });
+      .then(() => logger.info('Webhook processed successfully'))
+      .catch(error => logger.error('Async webhook processing error', error));
 
     res.status(200).send('Webhook received');
   } catch (error) {
-    console.error('Handler error:', error.stack); // Detailed error
-    logger.error('Webhook handler error', error);
+    logger.error('Webhook handler error', { error: error.stack });
     res.status(500).send('Internal Server Error');
   }
 });
